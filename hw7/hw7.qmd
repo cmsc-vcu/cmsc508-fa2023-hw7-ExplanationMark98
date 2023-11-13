@@ -1,6 +1,6 @@
 ---
 title: Homework 7 - Creating a resume database
-author: (your name goes here!)
+author: John Duffer
 date: last-modified
 format:
     html:
@@ -10,11 +10,11 @@ format:
         code-copy: true
 ---
 
-(include a brief description of what is in this document)
+This document provides an summary of the resume database
 
-(Please clean up any comments that I included.  This is a scaffold document.)
 
-GITHUB URL:  <your URL goes here!>
+
+GITHUB URL:  https://github.com/cmsc-vcu/cmsc508-fa2023-hw7-ExplanationMark98
 
 ```{python}
 #| eval: true
@@ -92,25 +92,54 @@ except Exception as e:
 
 ## Overview and description
 
-(briefly describe the project and the database)
+Create a data base to hold a company's employees, the employee's skills and roles.
 
 ## Crows-foot diagram
 
-(add a description of the diagram and what the reader is seeing.)
-
+This Diagram represents the relationship between People, People skills, People roles, roles and skills. I coulndt figure out how to show the roles and skills entities in the diagram. If Skills were here, it would connect to people skills with a one to many relationship. Same with roles for people roles.
 ```{mermaid}
 %%| echo: false
 erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
-    CUSTOMER{
+    PEOPLE ||--o{ PEOPLEROLES : "Assigned to"
+    PEOPLE ||--o{ PEOPLESKILLS : "Acquires"
+    PEOPLE {
         int id
-        string first_name
-        string last_name
+        varchar(256) last_name
+        varchar(256) email
+        varchar(256) linkedin_url
+        varchar(256) headshot_url
+        varchar(256) discord_handle
+        varchar(256) brief_bio
+        date date_joined
     }
-    DELIVERY-ADDRESS {
+    PEOPLESKILLS {
         int id
+        int skills_id
+        int people_id
+        date date_acquired
     }
+    SKILLS ||--o{ PEOPLESKILLS : "Acquired by"
+    SKILLS {
+        int id
+        varchar(255) name
+        varchar(255) description
+        varchar(255) tag
+        varchar(255) url
+        int time_commitment
+    }
+    PEOPLEROLES {
+        int id
+        int people_id
+        int role_id
+        date date_assigned
+    }
+    ROLES ||--o{ PEOPLEROLES : "Assigned to"
+    ROLES {
+        int id
+        varchar(255) name
+        int sort_priority
+    }
+
 ```
 
 ## Examples of data in the database
@@ -149,8 +178,18 @@ Below is a list of data in the *skills* table.
 ```{python}
 #| echo: false
 #| eval: true
-
+sql = f"""
+select * from skills;
+"""
 ## Add code to list roles table here
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ```
 
 ### Roles table
@@ -162,8 +201,18 @@ Below is a list of data in the *roles* table.
 ```{python}
 #| echo: false
 #| eval: true
-
+sql = f"""
+select * from roles;
+"""
 ## Add code to list roles table here
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ```
 
 
@@ -176,9 +225,22 @@ Let's explore the database!
 (here a sample query)
 
 ```{python}
+#| echo: false
+#| eval: true
 sql = f"""
-select * from people
+SELECT skills_name AS name, skills_tag AS tag, skills_description AS description
+FROM skills
+ORDER BY skills_name;
 """
+## Add code to list roles table here
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ```
 
 
@@ -201,29 +263,196 @@ df
 
 ### List people names and email addresses ordered by last_name
 
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+select people_last_name AS name, people_email AS email
+from people
+ORDER BY name
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 
+```
 ### List skill names of Person 1
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT skills.skills_name AS skillName
+FROM skills
+JOIN peopleskills ON skills.skills_id = peopleskills.skills_id
+JOIN people ON people.people_id = peopleskills.people_id
+WHERE people.people_id = 1;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+
+```
 
 
 ### List people names with Skill 6
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT people.people_last_name
+FROM people
+JOIN peopleskills ON people.people_id = peopleskills.people_id
+JOIN skills ON skills.skills_id = peopleskills.skills_id
+WHERE skills.skills_id = 6;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+
+```
 
 
 ### List people with a DEVELOPER role
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT *
+FROM people
+JOIN peopleroles ON people.people_id = peopleroles.people_id
+JOIN roles ON roles.id = peopleroles.role_id
+WHERE roles.name = 'Developer';
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+
+```
 
 
 ### List names and email addresses of people without skills
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT people.people_last_name, people.people_email
+FROM people
+LEFT JOIN peopleskills ON people.people_id = peopleskills.people_id
+WHERE peopleskills.skills_id IS NULL;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 
+
+```
 
 ### List names and tags of unused skills
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT skills_name, skills_tag
+FROM skills
+WHERE skills_id NOT IN (
+    SELECT DISTINCT skills_id
+    FROM peopleskills
+);
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 
+
+```
 
 ### List people names and skill names with the BOSS role
 
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT people.people_last_name, skills.skills_name
+FROM people
+JOIN peopleroles ON people.people_id = peopleroles.people_id
+JOIN roles ON peopleroles.role_id = roles.id
+LEFT JOIN peopleskills ON people.people_id = peopleskills.people_id
+LEFT JOIN skills ON peopleskills.skills_id = skills.skills_id
+WHERE roles.name = 'Boss';
+
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+
+```
+
 
 ### List ids and names of unused roles
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
 
+
+SELECT id, name
+FROM roles
+WHERE id NOT IN (
+    SELECT DISTINCT role_id
+    FROM peopleroles
+);
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+
+```
 
 ## Reflection
 
-(Write a paragraph expressing your thoughts, feelings, and insights about your experience with this assignment.  Pause and breath before writing - I'm trying to encourage critical thinking and self-awareness while allowing you to explore the connections between theory and practice. And yes, delete this paragraph.)
-
+I would argue that this assignment was difficult but rewarding. I definitely had to lean on chatgpt for some of the sql. Creating/populating the tables was fairly easy after watching the professors lecture. The hardest part was the sql queries. The amount of queries that are requested in this assignment is a perfect amount where its not overwhelming but it forced me to learn how to string together the sql commands to make accurate queries. I appreciate that about this assignment.
